@@ -187,7 +187,7 @@ def send_email_psa_reabte(df,usr_email,subj_email):
     email_receiver = usr_email
     #email_receiver = st.multiselect('Select one email', ['john.tan@sh-cogent.com.sg', 'vieming@yahoo.com'])
     email_sender = "john.tan@sh-cogent.com.sg"
-    email_password = "Realmadrid8985@" #st.secrets["password"]
+    email_password = "PASSWORD" #st.secrets["password"]
 
     body = """
             <html>
