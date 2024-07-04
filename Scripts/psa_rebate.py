@@ -145,15 +145,25 @@ def is_valid_filename(file_name):
     match = re.match(pattern, file_name) # Use the match function to check if the filename matches the pattern
     return match is not None # If there is a match, function returns True, otherwise it returns False
 
+def check_week_in_sheet_names(list_sheetNames, week_number):
+    week_number = str(week_number) # Convert week_number to string for comparison
+    # Iterate over each sheet name in the list
+    for sheet_name in list_sheetNames:
+        # Check if the sheet name matches the format 'Week' + ' ' + n
+        if sheet_name == 'Week ' + week_number:
+            return True  # Return True if match is found
+
 uploaded_file = st.file_uploader("Upload Transport KPI Monitoring excel file", type=['xlsx'])
 if uploaded_file is None:
     st.write('Please upload an excel file')
 elif uploaded_file:
     fileName = uploaded_file.name
     week_number = extract_week_number(fileName)
-
-    if not is_valid_filename(fileName):
-        st.write('Please upload an excel file with valid filename format')
+    uploaded_wb = openpyxl.load_workbook(uploaded_file)
+    sheetNames = uploaded_wb.sheetnames
+    
+    if not is_valid_filename(fileName) | check_week_in_sheet_names(sheetNames,week_number):
+        st.write('Please upload an excel file with valid filename format / worksheet does not exist')
     else:
         sheet_name = 'Week {}'.format(week_number)
         haulier_original = pd.read_excel(uploaded_file, sheet_name=sheet_name, engine='openpyxl')
@@ -169,7 +179,7 @@ elif uploaded_file:
         col_name = 'ContainerNumber'
         rebate = merge_dataframes(haulier_original,calculated_rebate,col_name)
         rebate.drop(columns=['EventType_y', 'CarrierName_y', 'CarrierVoyage_y', 'EventTime_y', 'Size_y', '24hr_y', '48hr_y', 
-                             'Nonpeak_y', 'Rebate_y'], inplace=True)
+                             'Nonpeak_y'], inplace=True) #Rebate_y
         rebate.rename(columns = {'EventType_x': 'EventType', 'CarrierName_x': 'CarrierName', 'CarrierVoyage_x': 'CarrierVoyage', 
                                  'EventTime_x': 'EventTime', 'Size_x': 'Size', '24hr_x': '24hr', '48hr_x': '48hr', 'Nonpeak_x': 'Nonpeak', 
                                  'Rebate_x': 'Rebate'}, inplace = True)
@@ -182,12 +192,19 @@ elif uploaded_file:
         title('PSA Rebate Summary ($): week ' + str(week_number))
         st.dataframe(peak_offpeak_rebate)
 
+        #with pd.ExcelWriter("C:/Users/"+usr_name[0]+ "Downloads/"+ 'psa_rebate.csv') as writer_rebate:
+        sheetName = 'psa_rebate_week'+ str(week_number)+ '_'+ datetime.now().strftime("%Y%m%d %H%M")
+        try:
+                    rebate_final.to_csv("C:/Users/"+usr_name[0]+ "/Downloads/"+ 'psa_rebate.csv', mode='x')
+        except FileExistsError:
+                    rebate_final.to_csv("C:/Users/"+usr_name[0]+ "/Downloads/"+ 'psa_rebate_1.csv')
+
 def send_email_psa_reabte(df,usr_email,subj_email):
     usr_email = user_email(usr_name)
     email_receiver = usr_email
     #email_receiver = st.multiselect('Select one email', ['john.tan@sh-cogent.com.sg', 'vieming@yahoo.com'])
     email_sender = "john.tan@sh-cogent.com.sg"
-    email_password = "PASSWORD" #st.secrets["password"]
+    email_password = "Realmadrid8985@" #st.secrets["password"]
 
     body = """
             <html>
@@ -243,3 +260,29 @@ def send_email_psa_reabte(df,usr_email,subj_email):
 if st.button('Email'):
     usr_email = user_email(usr_name)
     send_email_psa_reabte(peak_offpeak_rebate,usr_email,week_number)
+
+footer_html = """
+    <div class="footer">
+    <style>
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #f0f2f6;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .footer a {
+            color: #4a4a4a;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #3d3d3d;
+            text-decoration: underline;
+        }
+    </style>
+        All rights reserved @2024. Cogent Holdings IT Solutions.      
+    </div>
+"""
+st.markdown(footer_html,unsafe_allow_html=True)
